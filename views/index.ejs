@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <form action="/submit-vat" method="post">
+        <label for="vat-number">Insert VAT number</label>
+        <input type="text" id="vat-number" name="vatnumber">
+        <button type="submit" value="POST">Submit</button>
+    </form>
+
+    <p><%= content %></p>
+    <% if (locals.address) { %>
+        <p><%= address %></p>
+    <% } %>
+    
+</body>
+</html>
