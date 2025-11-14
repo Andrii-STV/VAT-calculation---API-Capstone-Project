@@ -17,6 +17,19 @@
     <% if (locals.address) { %>
         <p><%= address %></p>
     <% } %>
+
+
+    <form action="/extract" method="post">
+        <button type="submit" value="post">Create Extraction</button>
+        <br><br>
+    </form>
+
+    <form action="/uploadFiles" method="post" enctype="multipart/form-data" style="padding:24px; background-color: aliceblue; border: 1px dashed #111; border-radius: 24px; width: 400px;">
+        <label for="file">File</label>
+        <input id="file" name="file" type="file">
+        <br><br>
+        <button>Upload</button>
+    </form>
     
 </body>
 </html>
