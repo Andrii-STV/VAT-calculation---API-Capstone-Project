@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config()
+
 import express from "express";
 import axios from "axios";
 import bodyParser from "body-parser";
@@ -5,8 +8,8 @@ import bodyParser from "body-parser";
 const app = express();
 const port = 3000;
 
-const api = 'https://apilayer.net/api/';
-const api_key = '50f5837618227869edc018f0ad3661ab';
+const vatlayerServer = 'https://apilayer.net/api/';
+const VATLAYER_API_KEY = '50f5837618227869edc018f0ad3661ab';
 
 const validateEndPoint = "validate";
 
@@ -24,9 +27,8 @@ app.get("/", (req, res) => {
 
 app.post("/submit-vat", async (req, res) => {
     try {
-        const response = await axios.get(api + validateEndPoint + "?access_key=" + api_key + "&vat_number=" + req.body.vatnumber);
+        const response = await axios.get(vatlayerServer + validateEndPoint + "?access_key=" + VATLAYER_API_KEY + "&vat_number=" + req.body.vatnumber);
         const result = response.data;
-        console.log(req.body);
         res.render("index.ejs", {
             content: result.company_name,
             address: result.company_address
