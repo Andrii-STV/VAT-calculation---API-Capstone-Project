@@ -2,14 +2,30 @@ import dotenv from 'dotenv';
 dotenv.config()
 const VATLAYER_API_KEY = process.env.VATLAYER_API_KEY;
 const EXTRACTA_API_KEY = process.env.EXTRACTA_API_KEY;
+const SECRET_SESSION_KEY = process.env.SECRET_SESSION_KEY;
 
 import express from "express";
 import axios from "axios";
 import bodyParser from "body-parser";
+import fs  from 'fs';
+import FormData from "form-data";
+import session from 'express-session';
+import path from 'path';
+import multer from 'multer';
 
 const app = express();
 const port = 3000;
 
+//Session set up for storing API call outputs as global values
+app.use(session ({
+    secret: process.env.SECRET_SESSION_KEY,
+    resave: false, // Prevents session from being saved back to the session store on every request
+    saveUninitialized: true, // Forces a session that is uninitialized to be saved to the store
+    cookie: { 
+        secure: 'auto', // Secure cookies for production
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    } 
+}));
 
 //Vatlayer API routes
 const vatlayerServer = 'https://apilayer.net/api/';
@@ -18,6 +34,7 @@ const validateEndPoint = "validate";
 //Extracta API routes
 const extractaServer = 'https://api.extracta.ai/api/v1';
 const extractaCreateExtractionRoute = '/createExtraction';
+const extractaUploadFilesRoute = '/uploadFiles';
 
 //Extracta  Receipt descriptions JSON for creating Extraction
 const extactaExtractionDetailsJSON = {
@@ -149,14 +166,64 @@ app.post("/extract", async (req, res) => {
                 'Authorization': `Bearer ${EXTRACTA_API_KEY}`
             }
         });
+        const extractionId = response.data.extractionId;
+        req.session.currentExtractionId = extractionId;
+
         res.render("index.ejs", {
-            content: JSON.stringify(response.data)
+            content: JSON.stringify(response.data.extractionId)
         });
     } catch (error) {
         res.render("index.ejs", {
             content: error
         });
         // throw error.response ? error.response.data : new Error('An unknown error occurred');
+    }
+});
+
+
+app.post ("/uploadFiles", async (req, res) => {
+    
+    const extractionId = req.session.currentExtractionId;
+    if (!extractionId) {
+        return res.render("idnex.ejs", {
+            content: "No current extraction ID found. Please create one first."
+        });
+    };
+
+    let formData = new FormData();
+    const batchId = null;
+    const ASSETS_ROOT = path.join(process.cwd(), 'public');
+    const files = [];
+    files.push(path.join(ASSETS_ROOT, 'assets', '1000003096.jpg'));
+    formData.append('extractionId', extractionId);
+    if (batchId) {
+        formData.append('batchId', batchId);
+    }
+
+    // Append files to formData
+    files.forEach(file => {
+        formData.append('files', fs.createReadStream(file));
+    });
+
+    //console.log() for debugging
+    console.log("Attempting to post files to URL:", extractaServer + extractaUploadFilesRoute);
+    try {
+        const response = await axios.post(extractaServer + extractaUploadFilesRoute, formData, {
+            headers: {
+                ...formData.getHeaders(),
+                'Authorization': `Bearer ${EXTRACTA_API_KEY}`
+            }
+        });
+        //console.log() for debugging
+        console.log("Upload Success:", response.data.files[0].url);
+        res.render("index.ejs", {
+            content: JSON.stringify(response.data),
+            imageUrl: response.data.files[0].url
+        });
+    } catch (error) {
+        res.render("index.ejs", {
+            content: error,
+        });
     }
 });
 

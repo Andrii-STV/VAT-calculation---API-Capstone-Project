@@ -17,6 +17,9 @@
     <% if (locals.address) { %>
         <p><%= address %></p>
     <% } %>
+    <% if (locals.imageUrl) { %>
+        <img src="<%= imageUrl %>" width="400" heigth="600" style="object-fit: contain;">
+    <% } %>
 
 
     <form action="/extract" method="post">
@@ -24,7 +27,7 @@
         <br><br>
     </form>
 
-    <form action="/uploadFiles" method="post" enctype="multipart/form-data" style="padding:24px; background-color: aliceblue; border: 1px dashed #111; border-radius: 24px; width: 400px;">
+    <form action="/uploadFiles" method="post" enctype="multipart/form-data" accept="image/*, application/pdf" required style="padding:24px; background-color: aliceblue; border: 1px dashed #111; border-radius: 24px; width: 400px;">
         <label for="file">File</label>
         <input id="file" name="file" type="file">
         <br><br>
