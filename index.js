@@ -289,7 +289,6 @@ app.post("/results", async (req, res) => {
         const vatlayerValidateResult = vatlayerValidateResponse.data;
         const vatlayerFullPriceResult = vatlayerFullPriceResponse.data;
 
-        // req.session.currentVatNumber = vatNumber;
 
         res.render("results.ejs", {
             extractaContent: extractaData.batchId,
@@ -335,21 +334,6 @@ app.post("/results", async (req, res) => {
     };
 });
 
-// app.get("/results", async (req, res) => {
-//     const vatNumber = req.session.currentVatNumber;
-//     try {
-//         const response = await axios.get(vatlayerServer + validateEndPoint + "?access_key=" + VATLAYER_API_KEY + "&vat_number=" + vatNumber);
-//         const result = response.data;
-//         res.render("results.ejs", {
-//             vatlayerContent: result.company_name,
-//             vatlayerAddress: result.company_address
-//         });
-//     } catch (error) {
-//         res.render("results.ejs", {
-//             content: `Vatlayer error occured: ${error}`
-//         });
-//     };
-// });
 
 app.listen(port, ()=> {
     console.log(`Server is running on port ${port}`);
