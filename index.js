@@ -11,7 +11,9 @@ import fs  from 'fs';
 import FormData from "form-data";
 import session from 'express-session';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import multer from 'multer';
+import ejs from 'ejs';
 
 const app = express();
 const port = 3000;
@@ -27,14 +29,28 @@ app.use(session ({
     } 
 }));
 
+//Configuring Multer to temporarily store uploads
+const storage = multer.diskStorage({
+    destination: (req, file, callback) => {
+        callback(null, 'temp_uploads/')
+    },
+    filename: (req, file, callback) => {
+        callback(null, Date.now() + '-' + file.originalname)
+    }
+});
+
+const upload = multer({ storage: storage });
+
 //Vatlayer API routes
 const vatlayerServer = 'https://apilayer.net/api/';
 const validateEndPoint = "validate";
+const priceEndPoint = "price";
 
 //Extracta API routes
 const extractaServer = 'https://api.extracta.ai/api/v1';
 const extractaCreateExtractionRoute = '/createExtraction';
 const extractaUploadFilesRoute = '/uploadFiles';
+const extractaGetBatchResults = '/getBatchResults';
 
 //Extracta  Receipt descriptions JSON for creating Extraction
 const extactaExtractionDetailsJSON = {
@@ -79,6 +95,12 @@ const extactaExtractionDetailsJSON = {
                             "description": "tax id or vat id of the merchant",
                             "example": "123987456",
                             "type": "string"
+                        },
+                        {
+                            "key": "merchant_country_code",
+                            "description": "country code of the country where merchant operates",
+                            "example": "LT",
+                            "type": "string"
                         }
                     ]
                 },
@@ -121,9 +143,15 @@ const extactaExtractionDetailsJSON = {
                     "type": "string"
                 },
                 {
-                    "key": "grand_total",
+                    "key": "total_price_including_taxes",
                     "description": "The total amount after tax has been added. This should capture the final payable amount. Return only the number as a string.",
                     "example": "1027.00",
+                    "type": "string"
+                },
+                {
+                    "key": "type_of_goods",
+                    "description": "Type of goods returned according to all items included in the receipt. Choose from the following types: some domestic passenger transport, hotel accommodation, district heating, books (excluding e-books), firewood, pharmaceutical products, medical equipment for disabled persons, newspapers and periodicals (some exceptions), intra-community and international transport, medical. If the goods in the receipt don't match any of these types, return empty string.",
+                    "example": "pharmaceutical products",
                     "type": "string"
                 }
             ]
@@ -176,37 +204,35 @@ app.post("/extract", async (req, res) => {
         res.render("index.ejs", {
             content: error
         });
-        // throw error.response ? error.response.data : new Error('An unknown error occurred');
     }
 });
 
 
-app.post ("/uploadFiles", async (req, res) => {
+app.post ("/uploadFiles", upload.single('file'), async (req, res) => {
     
+    const uploadedFile = req.file;
     const extractionId = req.session.currentExtractionId;
-    if (!extractionId) {
-        return res.render("idnex.ejs", {
+    if (!extractionId || !uploadedFile) {
+        if (uploadedFile) fs.unlinkSync(uploadedFile.path);
+        return res.render("index.ejs", {
             content: "No current extraction ID found. Please create one first."
         });
     };
 
     let formData = new FormData();
     const batchId = null;
-    const ASSETS_ROOT = path.join(process.cwd(), 'public');
-    const files = [];
-    files.push(path.join(ASSETS_ROOT, 'assets', '1000003096.jpg'));
     formData.append('extractionId', extractionId);
+
+    try {
+        formData.append('files', fs.createReadStream(uploadedFile.path));
+    }catch (error) {
+        fs.unlinkSync(uploadedFile.path);
+        return res.status(500).render("index.ejs", { content: "Error reading uploaded file." });
+    }
     if (batchId) {
         formData.append('batchId', batchId);
     }
 
-    // Append files to formData
-    files.forEach(file => {
-        formData.append('files', fs.createReadStream(file));
-    });
-
-    //console.log() for debugging
-    console.log("Attempting to post files to URL:", extractaServer + extractaUploadFilesRoute);
     try {
         const response = await axios.post(extractaServer + extractaUploadFilesRoute, formData, {
             headers: {
@@ -214,8 +240,11 @@ app.post ("/uploadFiles", async (req, res) => {
                 'Authorization': `Bearer ${EXTRACTA_API_KEY}`
             }
         });
-        //console.log() for debugging
-        console.log("Upload Success:", response.data.files[0].url);
+        fs.unlinkSync(uploadedFile.path);
+
+        const batchId = response.data.batchId;
+        req.session.currentBatchId = batchId;
+
         res.render("index.ejs", {
             content: JSON.stringify(response.data),
             imageUrl: response.data.files[0].url
@@ -225,7 +254,102 @@ app.post ("/uploadFiles", async (req, res) => {
             content: error,
         });
     }
+
 });
+
+app.post("/results", async (req, res) => {
+    const batchId = req.session.currentBatchId;
+    const extractionId = req.session.currentExtractionId;
+    let extractaData = null;
+    try {
+        const payload = {
+            extractionId,
+            batchId
+        };
+        const extractaResponse = await axios.post(extractaServer + extractaGetBatchResults, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${EXTRACTA_API_KEY}`
+            }
+        });
+
+        extractaData = extractaResponse.data;
+
+        const vatNumber = extractaData.files[0].result.merchant.merchant_tax_id;
+        const fullPrice = extractaData.files[0].result.total_price_including_taxes;
+        const countryCode = extractaData.files[0].result.merchant.merchant_country_code;
+        const typeOfGoods = extractaData.files[0].result.type_of_goods;
+        const receiptImage = extractaData.files[0].url;
+        console.log(vatNumber);
+
+
+        const vatlayerValidateResponse = await axios.get(vatlayerServer + validateEndPoint + "?access_key=" + VATLAYER_API_KEY + "&vat_number=" + vatNumber);
+        const vatlayerFullPriceResponse = await axios.get(vatlayerServer + priceEndPoint + "?access_key=" + VATLAYER_API_KEY + "&amount=" + fullPrice + "&country_code=" + countryCode + "&type=" + typeOfGoods + "&incl=1");
+        
+        const vatlayerValidateResult = vatlayerValidateResponse.data;
+        const vatlayerFullPriceResult = vatlayerFullPriceResponse.data;
+
+        // req.session.currentVatNumber = vatNumber;
+
+        res.render("results.ejs", {
+            extractaContent: extractaData.batchId,
+
+            vatlayerFullVatNumber: vatlayerValidateResult.query,
+            vatlayerCountryCode: vatlayerValidateResult.country_code,
+            vatlayerCompanyName: vatlayerValidateResult.company_name,
+            vatlayerCompanyAddress: vatlayerValidateResult.company_address,
+            
+            vatlayerNetPrice: vatlayerFullPriceResult.price_excl_vat.toFixed(2),
+            vatlayerFullPrice: vatlayerFullPriceResult.price_incl_vat,
+            vatlayerVatRate: vatlayerFullPriceResult.vat_rate,
+            vatlayerTypeOfGoods: vatlayerFullPriceResult.type,
+
+            extractaReceiptImg: receiptImage
+        });
+    } catch(error) {
+
+        let errorMessage = "An unknown error occurred.";
+        if (extractaData === null) {
+            errorMessage = `Extracta API Error: ${error.message}`;
+        } else if (error.message.includes("critical data") || error.message.includes("unavailable")) {
+             errorMessage = `Extraction Data Missing: ${error.message}`;
+        } else {
+            errorMessage = `Vatlayer API Error: ${error.message}`;
+        }
+
+        
+        res.render("results.ejs", { 
+            extractaContent: errorMessage,
+            
+            vatlayerFullVatNumber: 'N/A',
+            vatlayerCountryCode: 'N/A',
+            vatlayerCompanyName: 'Error Processing',
+            vatlayerCompanyAddress: 'Error Processing',
+            
+            vatlayerNetPrice: 'N/A',
+            vatlayerFullPrice: 'N/A',
+            vatlayerVatRate: 'N/A',
+            vatlayerTypeOfGoods: 'N/A',
+            extractaReceiptImg: null
+        });
+    };
+});
+
+// app.get("/results", async (req, res) => {
+//     const vatNumber = req.session.currentVatNumber;
+//     try {
+//         const response = await axios.get(vatlayerServer + validateEndPoint + "?access_key=" + VATLAYER_API_KEY + "&vat_number=" + vatNumber);
+//         const result = response.data;
+//         res.render("results.ejs", {
+//             vatlayerContent: result.company_name,
+//             vatlayerAddress: result.company_address
+//         });
+//     } catch (error) {
+//         res.render("results.ejs", {
+//             content: `Vatlayer error occured: ${error}`
+//         });
+//     };
+// });
 
 app.listen(port, ()=> {
     console.log(`Server is running on port ${port}`);

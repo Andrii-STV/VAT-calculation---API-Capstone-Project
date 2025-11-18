@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results</title>
+</head>
+<body>
+    <h1>Query Results</h1>
+    <% if(extractaContent) { %>
+        <p><%= extractaContent %></p>
+    <% } %>
+
+    <% if(extractaReceiptImg) { %>
+        <img src="<%= extractaReceiptImg %>" width="400" heigth="600" style="object-fit: contain;">
+    <% } %>
+
+
+        <div style="width: 600px; background-color: aliceblue; padding: 24px; border-radius: 16px; border: 1px solid #3d3d3d;">
+            <span><strong>Company Name: </strong></span><span><%= vatlayerCompanyName %></span><br>
+            <span><strong>Company Address: </strong></span><span><%= vatlayerCompanyAddress %></span><br>
+            <span><strong>Country Code: </strong></span><span><%= vatlayerCountryCode %></span><br>
+            <span><strong>VAT Code: </strong></span><span><%= vatlayerFullVatNumber %></span>
+        </div>
+        <br><br>
+        <div style="width: 600px; background-color: aliceblue; padding: 24px; border-radius: 16px; border: 1px solid #3d3d3d;">
+            <span><strong>Price Excluding VAT: </strong></span><span><%= vatlayerNetPrice %></span><br>
+            <span><strong>Price Including VAT: </strong></span><span><%= vatlayerFullPrice %></span><br>
+            <span><strong>VAT Rate: </strong></span><span><%= vatlayerVatRate %>%</span><br>
+            <span><strong>Type of Goods: </strong></span><% if(vatlayerTypeOfGoods) {%> <span><%= vatlayerTypeOfGoods %></span> <%} else {%> <span>Goods of Standard Rate</span> <%}%>
+            
+        </div>
+
+</body>
+</html>
