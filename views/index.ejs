@@ -1,42 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+<%- include("partials/header.ejs") %>
 
-    <form action="/submit-vat" method="post">
+    <div class="container">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1>Automate Your Bookkeeping: Upload Receipts, Get Perfect Data</h1>
+                <p>Missing the invoice? Simply upload your document and get all necessary bookkeeping data extracted and categorized instantly.</p>
+                <a href="#try-now" class="primary-button">Try Now</a>
+            </div>
+            <img class="hero-image" src="/media/shutterstock_2326236241-removebg-preview 1.png" alt="hero-image">
+        </div>
+    </div>
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="color: white; font-size: 18px;">Processing...</div>
+    </div>
+
+    <!-- <form action="/submit-vat" method="post">
         <label for="vat-number">Insert VAT number</label>
         <input type="text" id="vat-number" name="vatnumber">
         <button type="submit" value="POST">Submit</button>
-    </form>
+    </form> -->
 
-    <p><%= content %></p>
-    <% if (locals.address) { %>
-        <p><%= address %></p>
-    <% } %>
-    <% if (locals.imageUrl) { %>
-        <img src="<%= imageUrl %>" width="400" heigth="600" style="object-fit: contain;">
-    <% } %>
-
-
-    <form action="/extract" method="post">
+    <!-- <form action="/extract" method="post">
         <button type="submit" value="post">Create Extraction</button>
         <br><br>
-    </form>
+    </form> -->
+    <div class="container" id="try-now">
+        <div class="body-container">
+            <h2>How it works:</h2>
+            <ol>
+                <li>Drag the example image or upload yours</li>
+                <li>Click 'Upload' button to initialize the process, you'll see your image uploaded</li>
+                <li>Finally, click the 'See Results' to retrieve all data from your receipt</li>
+            </ol>
+            <h3 class="extraction-id">Extraction ID:</h3>
+            <p class="extraction-id"><%= content %></p>
+                <% if (locals.address) { %>
+                    <p><%= address %></p>
+                <% } %>
+                <% if (locals.imageUrl) { %>
+                    <img src="<%= imageUrl %>" width="400" heigth="600" style="object-fit: contain; border-radius: 16px;">
+                <% } %>
+            <h3 class="example-receipt-content">Example Receipt:</h3>
+            <p>Drag the box below to the uploading area to see how it works</p>
+            <div id="dragBox" draggable="true" data-image-src="/assets/1000003096.jpg">
+                <img class="img-icon" src="/media/camera-svgrepo-com.svg">Receipt_1.png
+            </div>
 
-    <form action="/uploadFiles" method="post" enctype="multipart/form-data" accept="image/*, application/pdf" required style="padding:24px; background-color: aliceblue; border: 1px dashed #111; border-radius: 24px; width: 400px;">
-        <label for="file">File</label>
-        <input id="file" name="file" type="file">
-        <br><br>
-        <button>Upload</button>
-    </form>
+            <form id="uploadForm" action="/uploadFiles" method="post" enctype="multipart/form-data" accept="image/*, application/pdf" required>
+                
+                <div id="dropZone">
+                    <p>Drag a file here or use the example image above</p>
+                    <!-- <label for="file">File</label> -->
+                    <input id="file" name="file" type="file">
+                    <button class="secondary-button">Upload</button>
+                </div>
+                <br>
+            </form>
 
-    <form action="/results" method="post">
-        <button type="submit" value="post">See Results</button>
-    </form>
-    
-</body>
-</html>
+            <form id="resultsForm" action="/results" method="post">
+                <button type="submit" value="post" class="primary-button">See Results</button>
+            </form>
+        </div>
+    </div>
+
+
+<script>
+    /* Convert page image to file */
+    async function urlToFile(url, filename) {
+        const r = await fetch(url, { cache: "no-store" });
+        const blob = await r.blob();
+        return new File([blob], filename, { type: blob.type || "image/jpeg" });
+    }
+
+    const dragBox = document.getElementById("dragBox");
+    const dropZone = document.getElementById("dropZone");
+    const uploadForm = document.getElementById("uploadForm");
+    const resultsForm = document.getElementById("resultsForm");
+    const fileInput = document.getElementById("file");
+    const loader = document.getElementById("loadingOverlay");
+
+    function showLoader() { loader.style.display = "flex"; }
+
+    // Dragging the box
+    dragBox.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", dragBox.dataset.imageSrc);
+    });
+
+    // Drop zone highlight
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragging");
+    });
+
+    dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("dragging")
+    );
+
+    // Handle drop
+    dropZone.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragging");
+
+        const dt = e.dataTransfer;
+        const assign = new DataTransfer();
+
+        if (dt.files && dt.files.length > 0) {
+            assign.items.add(dt.files[0]);
+        } else {
+            const src = dt.getData("text/plain");
+            if (src) {
+                const f = await urlToFile(src, "1000003096.jpg");
+                assign.items.add(f);
+            }
+        }
+
+        fileInput.files = assign.files;
+        
+    });
+
+    // Selecting file manually
+    fileInput.addEventListener("change", () => {
+        //Do nothing 
+    });
+
+     resultsForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        showLoader(); 
+        setTimeout(() => {
+            resultsForm.submit();
+        }, 4000);
+    });
+</script>
+
+
+<%- include("partials/footer.ejs") %>

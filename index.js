@@ -39,6 +39,7 @@ const storage = multer.diskStorage({
     }
 });
 
+//Keeps uploaded files in a temporary storage
 const upload = multer({ storage: storage });
 
 //Vatlayer API routes
@@ -162,31 +163,8 @@ app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
-app.get("/", (req, res) => {
-    
-   res.render("index.ejs", {
-    content: "input your VAT number above to get the name of the company"
-   });
-});
+app.get("/", async (req, res) => {
 
-app.post("/submit-vat", async (req, res) => {
-    try {
-        const response = await axios.get(vatlayerServer + validateEndPoint + "?access_key=" + VATLAYER_API_KEY + "&vat_number=" + req.body.vatnumber);
-        const result = response.data;
-        res.render("index.ejs", {
-            content: result.company_name,
-            address: result.company_address
-        });
-    } catch (error) {
-        res.render("index.ejs", {
-            content: error.info
-        });
-    };
-});
-
-app.post("/extract", async (req, res) => {
-
-    
     try {
         const response = await axios.post(extractaServer + extractaCreateExtractionRoute, extactaExtractionDetailsJSON, {
             headers: {
@@ -205,7 +183,49 @@ app.post("/extract", async (req, res) => {
             content: error
         });
     }
+    
+//    res.render("index.ejs", {
+//     content: "input your VAT number above to get the name of the company"
+//    });
 });
+
+app.post("/submit-vat", async (req, res) => {
+    try {
+        const response = await axios.get(vatlayerServer + validateEndPoint + "?access_key=" + VATLAYER_API_KEY + "&vat_number=" + req.body.vatnumber);
+        const result = response.data;
+        res.render("index.ejs", {
+            content: result.company_name,
+            address: result.company_address
+        });
+    } catch (error) {
+        res.render("index.ejs", {
+            content: error.info
+        });
+    };
+});
+
+// app.post("/extract", async (req, res) => {
+
+    
+//     try {
+//         const response = await axios.post(extractaServer + extractaCreateExtractionRoute, extactaExtractionDetailsJSON, {
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'Authorization': `Bearer ${EXTRACTA_API_KEY}`
+//             }
+//         });
+//         const extractionId = response.data.extractionId;
+//         req.session.currentExtractionId = extractionId;
+
+//         res.render("index.ejs", {
+//             content: JSON.stringify(response.data.extractionId)
+//         });
+//     } catch (error) {
+//         res.render("index.ejs", {
+//             content: error
+//         });
+//     }
+// });
 
 
 app.post ("/uploadFiles", upload.single('file'), async (req, res) => {
@@ -215,7 +235,7 @@ app.post ("/uploadFiles", upload.single('file'), async (req, res) => {
     if (!extractionId || !uploadedFile) {
         if (uploadedFile) fs.unlinkSync(uploadedFile.path);
         return res.render("index.ejs", {
-            content: "No current extraction ID found. Please create one first."
+            content: "No current extraction ID found. Please get back to homepage('/')."
         });
     };
 
@@ -246,7 +266,7 @@ app.post ("/uploadFiles", upload.single('file'), async (req, res) => {
         req.session.currentBatchId = batchId;
 
         res.render("index.ejs", {
-            content: JSON.stringify(response.data),
+            content: JSON.stringify(response.data.extractionId),
             imageUrl: response.data.files[0].url
         });
     } catch (error) {

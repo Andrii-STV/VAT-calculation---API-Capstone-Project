@@ -1,35 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Results</title>
-</head>
-<body>
-    <h1>Query Results</h1>
-    <% if(extractaContent) { %>
-        <p><%= extractaContent %></p>
-    <% } %>
-
-    <% if(extractaReceiptImg) { %>
-        <img src="<%= extractaReceiptImg %>" width="400" heigth="600" style="object-fit: contain;">
-    <% } %>
-
-
-        <div style="width: 600px; background-color: aliceblue; padding: 24px; border-radius: 16px; border: 1px solid #3d3d3d;">
-            <span><strong>Company Name: </strong></span><span><%= vatlayerCompanyName %></span><br>
-            <span><strong>Company Address: </strong></span><span><%= vatlayerCompanyAddress %></span><br>
-            <span><strong>Country Code: </strong></span><span><%= vatlayerCountryCode %></span><br>
-            <span><strong>VAT Code: </strong></span><span><%= vatlayerFullVatNumber %></span>
+<%- include("partials/header.ejs") %>
+<div class="container" id="try-now">
+    <div class="body-container">
+        <h2 class="query-results-heading">Query Results:</h2>
+        <div class="results-container">
+            <div class="result-image">
+                <% if(extractaReceiptImg) { %>
+                    <img src="<%= extractaReceiptImg %>" class="rendered-image">
+                <% } %>
+            </div>
+            <div class="tables">
+                <div class="result-table">
+                    <span><strong>Company Name: </strong></span><span><%= vatlayerCompanyName %></span><br>
+                    <span><strong>Company Address: </strong></span><span><%= vatlayerCompanyAddress %></span><br>
+                    <span><strong>Country Code: </strong></span><span><%= vatlayerCountryCode %></span><br>
+                    <span><strong>VAT Code: </strong></span><span><%= vatlayerFullVatNumber %></span>
+                </div>
+                <div class="result-table">
+                    <span><strong>Price Excluding VAT: </strong></span><span><%= vatlayerNetPrice %></span><br>
+                    <span><strong>Price Including VAT: </strong></span><span><%= vatlayerFullPrice %></span><br>
+                    <span><strong>VAT Rate: </strong></span><span><%= vatlayerVatRate %>%</span><br>
+                    <span><strong>Type of Goods: </strong></span><% if(vatlayerTypeOfGoods) {%> <span><%= vatlayerTypeOfGoods %></span> <%} else {%> <span>Goods of Standard Rate</span> <%}%>    
+                </div>
+            </div>
         </div>
-        <br><br>
-        <div style="width: 600px; background-color: aliceblue; padding: 24px; border-radius: 16px; border: 1px solid #3d3d3d;">
-            <span><strong>Price Excluding VAT: </strong></span><span><%= vatlayerNetPrice %></span><br>
-            <span><strong>Price Including VAT: </strong></span><span><%= vatlayerFullPrice %></span><br>
-            <span><strong>VAT Rate: </strong></span><span><%= vatlayerVatRate %>%</span><br>
-            <span><strong>Type of Goods: </strong></span><% if(vatlayerTypeOfGoods) {%> <span><%= vatlayerTypeOfGoods %></span> <%} else {%> <span>Goods of Standard Rate</span> <%}%>
-            
-        </div>
-
-</body>
-</html>
+    </div>
+</div>
+<%- include("partials/footer.ejs") %>
