@@ -2,7 +2,7 @@ This app utilizes the Extracta API to extract data from the receipt images and t
 
 **Stack used:** Node.js, Axios, EJS, Multer, FormData, and 2 API's
 
-**How to run the app**
+**How to run the app:**
 Run the following commands in your terminal: 
 1. git clone https://github.com/Andrii-STV/VAT-calculation---API-Capstone-Project.git
 2. npm install
