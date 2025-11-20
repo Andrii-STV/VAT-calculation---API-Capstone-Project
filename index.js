@@ -32,7 +32,7 @@ app.use(session ({
 //Configuring Multer to temporarily store uploads
 const storage = multer.diskStorage({
     destination: (req, file, callback) => {
-        callback(null, 'temp_uploads/')
+        callback(null, 'tmp/')
     },
     filename: (req, file, callback) => {
         callback(null, Date.now() + '-' + file.originalname)
